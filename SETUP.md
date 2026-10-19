@@ -42,11 +42,12 @@ Ctrl+C when you're done.
 
 ## 3. Try it
 
-1. Type a California ZIP code, e.g. `91006` (Arcadia).
-2. Pick a radius (default 5 miles) and click **Search**.
-3. The map zooms to your ZIP with a marker per restaurant — hover a marker for its
-   name and address, click for details and a directions/hours link. The list below
-   mirrors the markers; clicking a row flies the map to it.
+1. The map loads every RMP restaurant in California (about 6,500 markers, clustered).
+2. Drag to explore and scroll to zoom — hover any marker for its name and address,
+   click for details and a directions/hours link.
+3. Optionally type a ZIP code and hit **Go** to fly the map there.
+4. The list under the map shows restaurants in the current view; clicking a row
+   zooms to its marker.
 
 ## Troubleshooting
 

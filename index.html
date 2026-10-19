@@ -5,46 +5,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CalFresh RMP Restaurant Finder — Hot Meals on EBT in California</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <style>
   :root { --green:#1b6b3a; --green-dark:#14522d; --bg:#f4f6f4; --card:#ffffff; --ink:#1d2420; --muted:#5c665e; --line:#dde3dd; }
   * { box-sizing:border-box; }
   body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; margin:0; background:var(--bg); color:var(--ink); line-height:1.5; }
-  header { background:var(--green); color:#fff; padding:1.4rem 1rem 1.1rem; }
+  header { background:var(--green); color:#fff; padding:1.2rem 1rem .9rem; }
   header h1 { margin:0 0 .3rem; font-size:1.35rem; }
   header p { margin:0; opacity:.92; font-size:.95rem; }
-  .wrap { max-width:860px; margin:0 auto; padding:1rem; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; margin-bottom:.9rem; }
+  .wrap { max-width:1000px; margin:0 auto; padding:1rem; }
   .elig { background:#eaf4ec; border:1px solid #bcd9c2; border-radius:12px; padding:.85rem 1rem; font-size:.92rem; margin-bottom:1rem; }
   .elig strong { color:var(--green-dark); }
-  form.search { display:flex; gap:.5rem; flex-wrap:wrap; align-items:flex-end; }
+  .toolbar { display:flex; gap:.5rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:.7rem; }
   label { font-size:.85rem; font-weight:600; color:var(--muted); display:block; margin-bottom:.25rem; }
-  input[type=text] { font-size:1.05rem; padding:.6rem .7rem; border:1px solid var(--line); border-radius:8px; width:9rem; }
-  select { font-size:1.02rem; padding:.6rem .6rem; border:1px solid var(--line); border-radius:8px; background:#fff; }
-  button.go { font-size:1.05rem; font-weight:700; background:var(--green); color:#fff; border:0; border-radius:8px; padding:.65rem 1.4rem; cursor:pointer; }
+  input[type=text] { font-size:1.02rem; padding:.55rem .65rem; border:1px solid var(--line); border-radius:8px; width:8.5rem; }
+  button.go { font-size:1rem; font-weight:700; background:var(--green); color:#fff; border:0; border-radius:8px; padding:.6rem 1.2rem; cursor:pointer; }
   button.go:hover { background:var(--green-dark); }
   button.go:disabled { opacity:.6; cursor:wait; }
-  .status { margin:.8rem 0; font-size:.95rem; color:var(--muted); }
+  .status { margin:.6rem 0; font-size:.95rem; color:var(--muted); }
   .error { background:#fdecea; border:1px solid #f3b3ad; color:#7a241d; border-radius:10px; padding:.8rem 1rem; margin:.8rem 0; font-size:.95rem; }
-  #map { height:440px; border-radius:12px; border:1px solid var(--line); margin-bottom:.9rem; display:none; z-index:0; }
+  #map { height:70vh; min-height:420px; border-radius:12px; border:1px solid var(--line); margin-bottom:.9rem; z-index:0; background:#e8ece8; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.8rem 1rem; margin-bottom:.6rem; }
   .rest { display:flex; justify-content:space-between; align-items:center; gap:.75rem; cursor:pointer; }
   .rest:hover { border-color:var(--green); }
-  .rest h2 { margin:0 0 .15rem; font-size:1.02rem; }
-  .addr { color:var(--muted); font-size:.9rem; }
-  .dist { background:#eef3ee; border:1px solid var(--line); border-radius:20px; padding:.15rem .65rem; font-size:.85rem; font-weight:700; color:var(--green-dark); white-space:nowrap; }
-  .links { margin-top:.4rem; font-size:.88rem; }
+  .rest h2 { margin:0 0 .15rem; font-size:1rem; }
+  .addr { color:var(--muted); font-size:.88rem; }
+  .links { margin-top:.3rem; font-size:.86rem; }
   .links a { color:var(--green); font-weight:600; }
+  .list-head { font-size:.9rem; font-weight:700; color:var(--muted); margin:.4rem 0 .5rem; }
   .note { font-size:.85rem; color:var(--muted); }
-  footer { font-size:.82rem; color:var(--muted); padding:1rem; max-width:860px; margin:0 auto 2rem; }
+  footer { font-size:.82rem; color:var(--muted); padding:1rem; max-width:1000px; margin:0 auto 2rem; }
   footer a { color:var(--green); }
   .sources { font-size:.88rem; }
   .leaflet-tooltip.rmp-tip { font-family:inherit; }
+  .spinner { display:inline-block; width:1em; height:1em; border:2px solid #bcd9c2; border-top-color:var(--green); border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:-0.15em; margin-right:.4em; }
+  @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
 <header>
   <div class="wrap" style="padding:0">
     <h1>🍽️ CalFresh RMP Restaurant Finder</h1>
-    <p>Find hot-meal restaurants near any California ZIP code that accept EBT through the Restaurant Meals Program.</p>
+    <p>Every hot-meal restaurant in California that accepts EBT through the Restaurant Meals Program — on one map.</p>
   </div>
 </header>
 
@@ -52,33 +55,22 @@
   <div class="elig">
     <strong>Who can use these restaurants?</strong> CalFresh households where <em>every</em> member is 60 or older,
     has a disability, or is experiencing homelessness (spouses included). Only approved locations can take EBT for hot, prepared food —
-    this finder lists the federally-approved vendors.
+    this map shows the federally-approved vendors statewide.
   </div>
 
-  <div class="card">
-    <form class="search" id="searchForm">
-      <div>
-        <label for="zip">ZIP code</label>
-        <input type="text" id="zip" inputmode="numeric" maxlength="5" placeholder="91006" autocomplete="postal-code">
-      </div>
-      <div>
-        <label for="radius">Radius</label>
-        <select id="radius">
-          <option value="1">1 mile</option>
-          <option value="3">3 miles</option>
-          <option value="5" selected>5 miles</option>
-          <option value="10">10 miles</option>
-          <option value="20">20 miles</option>
-        </select>
-      </div>
-      <div>
-        <button class="go" type="submit" id="goBtn">Search</button>
-      </div>
-    </form>
+  <div class="toolbar">
+    <div>
+      <label for="zip">Zoom to ZIP (optional)</label>
+      <input type="text" id="zip" inputmode="numeric" maxlength="5" placeholder="91006" autocomplete="postal-code">
+    </div>
+    <div>
+      <button class="go" type="button" id="zoomBtn">Go</button>
+    </div>
   </div>
 
-  <div class="status" id="status" aria-live="polite"></div>
-  <div id="map" role="application" aria-label="Map of RMP restaurants"></div>
+  <div class="status" id="status" aria-live="polite"><span class="spinner"></span>Loading restaurants…</div>
+  <div id="map" role="application" aria-label="Map of all California RMP restaurants"></div>
+  <div class="list-head" id="listHead" style="display:none"></div>
   <div id="results"></div>
 
   <div class="card sources">
@@ -97,11 +89,15 @@
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 "use strict";
 const ARCGIS = "https://services1.arcgis.com/RLQu0rK7h4kbsBq5/arcgis/rest/services/snap_retailer_location_data/FeatureServer/0/query";
 const FIELDS = ["Store_Name","Store_Street_Address","Additonal_Address","City","State","Zip_Code","County","Store_Type","Latitude","Longitude"].join(",");
-let map = null, markersLayer = null;
+const WHERE = "Store_Type='Restaurant Meals Program' AND State='CA'";
+let map = null, cluster = null;
+let vendors = [];   // all loaded vendor attribute objects
+let markers = [];   // parallel array of L.Marker
 
 // Try a direct fetch; on network/CORS failure, retry through the bundled local proxy (only when served by backend/proxy.py on localhost).
 const LOCAL_PROXY = location.hostname === "localhost" || location.hostname === "127.0.0.1";
@@ -120,48 +116,6 @@ async function apiGet(url) {
   }
 }
 
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 3958.8, dLa = (lat2-lat1)*Math.PI/180, dLo = (lon2-lon1)*Math.PI/180;
-  const a = Math.sin(dLa/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLo/2)**2;
-  return 2*R*Math.asin(Math.sqrt(a));
-}
-
-async function geocodeZip(zip) {
-  const z = await apiGet("https://api.zippopotam.us/us/" + zip);
-  const place = z.places && z.places[0];
-  if (!place) throw new Error("ZIP code not found.");
-  return { lat: parseFloat(place.latitude), lng: parseFloat(place.longitude),
-           city: place["place name"], state: place["state abbreviation"] };
-}
-
-async function queryRmpByPoint(lat, lng, miles) {
-  const where = "Store_Type='Restaurant Meals Program' AND State='CA'";
-  let offset = 0, all = [];
-  for (;;) {
-    const p = new URLSearchParams({
-      where, outFields: FIELDS,
-      geometry: lng + "," + lat, geometryType: "esriGeometryPoint", inSR: "4326",
-      spatialRel: "esriSpatialRelIntersects", distance: String(miles), units: "esriSRUnit_StatuteMile",
-      returnGeometry: "false", resultRecordCount: "1000", resultOffset: String(offset), f: "json"
-    });
-    const j = await apiGet(ARCGIS + "?" + p.toString());
-    if (j.error) throw new Error("USDA data service error: " + (j.error.message || "unknown"));
-    const feats = j.features || [];
-    all.push(...feats.map(f => f.attributes));
-    if (!j.exceededTransferLimit || feats.length === 0 || offset > 5000) break;
-    offset += feats.length;
-  }
-  return all;
-}
-
-async function queryRmpByZip(zip) {
-  const where = "Store_Type='Restaurant Meals Program' AND State='CA' AND Zip_Code='" + zip + "'";
-  const p = new URLSearchParams({ where, outFields: FIELDS, returnGeometry: "false", resultRecordCount: "1000", f: "json" });
-  const j = await apiGet(ARCGIS + "?" + p.toString());
-  if (j.error) throw new Error("USDA data service error: " + (j.error.message || "unknown"));
-  return (j.features || []).map(f => f.attributes);
-}
-
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 function mapsUrl(r) {
@@ -169,92 +123,122 @@ function mapsUrl(r) {
   return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
 }
 
-function ensureMap(lat, lng) {
-  const el = document.getElementById("map");
-  if (!map) {
-    map = L.map("map").setView([lat, lng], 13);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-    markersLayer = L.layerGroup().addTo(map);
-  }
-  if (el.style.display === "none") { el.style.display = "block"; map.invalidateSize(); }
+function addrOf(r) { return [r.Store_Street_Address, r.Additonal_Address].filter(Boolean).join(", "); }
+function cityZipOf(r) { return [r.City, r.State, r.Zip_Code].filter(Boolean).join(" "); }
+
+function initMap() {
+  map = L.map("map").setView([37.2, -119.6], 6);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  cluster = L.markerClusterGroup({ maxClusterRadius: 60 });
+  map.addLayer(cluster);
+  map.on("moveend", renderInViewList);
 }
 
-document.getElementById("searchForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const zip = document.getElementById("zip").value.trim();
-  const miles = parseInt(document.getElementById("radius").value, 10);
+async function loadAll() {
   const status = document.getElementById("status");
+  let offset = 0;
+  for (;;) {
+    const p = new URLSearchParams({
+      where: WHERE, outFields: FIELDS,
+      returnGeometry: "false", resultRecordCount: "1000", resultOffset: String(offset), f: "json"
+    });
+    const j = await apiGet(ARCGIS + "?" + p.toString());
+    if (j.error) throw new Error("USDA data service error: " + (j.error.message || "unknown"));
+    const feats = j.features || [];
+    vendors.push(...feats.map(f => f.attributes));
+    offset += feats.length;
+    status.innerHTML = '<span class="spinner"></span>Loading restaurants… ' + vendors.length.toLocaleString() + " loaded";
+    if (!j.exceededTransferLimit || feats.length === 0 || offset > 20000) break;
+  }
+}
+
+function buildMarkers() {
+  markers = vendors.map((r) => {
+    const name = r.Store_Name || "Unnamed location";
+    const m = L.marker([r.Latitude, r.Longitude]);
+    m.bindTooltip("<b>" + esc(name) + "</b><br>" + esc(addrOf(r)),
+                  { direction: "top", offset: [0, -10], className: "rmp-tip" });
+    m.bindPopup("<b>" + esc(name) + "</b><br>" + esc(addrOf(r)) + "<br>" + esc(cityZipOf(r)) +
+      (r.County ? "<br>" + esc(r.County) + " County" : "") +
+      '<br><a href="' + mapsUrl(r) + '" target="_blank" rel="noopener">Directions &amp; hours ↗</a><br>' +
+      '<span class="note">Hours not in the public dataset.</span>');
+    r._markerIdx = markers.length;
+    return m;
+  });
+  cluster.addLayers(markers);
+}
+
+function renderInViewList() {
+  if (!map || vendors.length === 0) return;
+  const b = map.getBounds();
+  const inView = [];
+  for (let i = 0; i < vendors.length && inView.length < 200; i++) {
+    const r = vendors[i];
+    if (b.contains([r.Latitude, r.Longitude])) inView.push({ r, i });
+  }
+  const head = document.getElementById("listHead");
   const results = document.getElementById("results");
-  const btn = document.getElementById("goBtn");
-  results.innerHTML = "";
+  if (inView.length === 0) { head.style.display = "none"; results.innerHTML = ""; return; }
+  head.style.display = "block";
+  head.textContent = inView.length >= 200
+    ? "Showing first 200 of many in this view — zoom in to narrow down"
+    : inView.length + " restaurant" + (inView.length === 1 ? "" : "s") + " in this view";
+  results.innerHTML = inView.map(({ r, i }) => {
+    const name = r.Store_Name || "Unnamed location";
+    return '<div class="card rest" data-idx="' + i + '">' +
+      "<div><h2>" + esc(name) + "</h2>" +
+      '<div class="addr">' + esc(addrOf(r)) + "<br>" + esc(cityZipOf(r)) + "</div>" +
+      '<div class="links"><a href="' + mapsUrl(r) + '" target="_blank" rel="noopener" data-stop="1">Directions &amp; hours ↗</a></div></div>' +
+      "</div>";
+  }).join("");
+  results.querySelectorAll(".rest").forEach(el => {
+    el.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-stop]")) return;
+      const idx = parseInt(el.dataset.idx, 10);
+      const m = markers[idx];
+      cluster.zoomToShowLayer(m, () => m.openPopup());
+    });
+  });
+}
+
+async function zoomToZip() {
+  const zip = document.getElementById("zip").value.trim();
+  const status = document.getElementById("status");
+  const btn = document.getElementById("zoomBtn");
   if (!/^\d{5}$/.test(zip)) { status.innerHTML = '<div class="error">Enter a 5-digit ZIP code.</div>'; return; }
   btn.disabled = true;
   try {
-    let geo = null, list;
-    try {
-      geo = await geocodeZip(zip);
-      if (geo.state !== "CA") throw new Error("This finder covers California only — " + zip + " is in " + geo.state + ".");
-      status.textContent = "Searching for RMP restaurants within " + miles + " miles of " + zip + " (" + geo.city + ")…";
-      list = await queryRmpByPoint(geo.lat, geo.lng, miles);
-      list.forEach(r => { r._dist = haversine(geo.lat, geo.lng, r.Latitude, r.Longitude); });
-      list.sort((a, b) => (a._dist || 0) - (b._dist || 0));
-    } catch (gErr) {
-      if (/California only|not found/i.test(gErr.message)) throw gErr;
-      status.textContent = "ZIP lookup hiccup — matching restaurants in " + zip + " exactly…";
-      list = await queryRmpByZip(zip);
-      if (list.length === 0) throw gErr;
-    }
-    if (list.length === 0) {
-      status.innerHTML = '<div class="error">No RMP restaurants found within ' + miles + ' miles of ' + esc(zip) +
-        '. Try a larger radius, or check the <a href="https://www.ebt.ca.gov/locator/index.html#/locator.page" target="_blank" rel="noopener">official EBT map</a>.</div>';
-    } else {
-      const cx = geo ? geo.lat : list[0].Latitude, cy = geo ? geo.lng : list[0].Longitude;
-      ensureMap(cx, cy);
-      markersLayer.clearLayers();
-      const bounds = [];
-      const cards = list.map((r, i) => {
-        const name = r.Store_Name || "Unnamed location";
-        const addr = [r.Store_Street_Address, r.Additonal_Address].filter(Boolean).join(", ");
-        const cityZip = [r.City, r.State, r.Zip_Code].filter(Boolean).join(" ");
-        const dist = (r._dist != null) ? r._dist.toFixed(1) + " mi" : "";
-        const m = L.marker([r.Latitude, r.Longitude]);
-        m.bindTooltip("<b>" + esc(name) + "</b><br>" + esc(addr) + (dist ? "<br>" + esc(dist) : ""),
-                     { direction: "top", offset: [0, -10], className: "rmp-tip" });
-        m.bindPopup("<b>" + esc(name) + "</b><br>" + esc(addr) + "<br>" + esc(cityZip) +
-          (dist ? "<br>" + esc(dist) + " away" : "") +
-          '<br><span class="note">Hours not in the public dataset —</span> ' +
-          '<a href="' + mapsUrl(r) + '" target="_blank" rel="noopener">check hours &amp; directions ↗</a>');
-        markersLayer.addLayer(m);
-        bounds.push([r.Latitude, r.Longitude]);
-        r._marker = m;
-        return '<div class="card rest" data-idx="' + i + '">' +
-          '<div><h2>' + esc(name) + '</h2><div class="addr">' + esc(addr) + "<br>" + esc(cityZip) + "</div>" +
-          '<div class="links"><a href="' + mapsUrl(r) + '" target="_blank" rel="noopener" data-stop="1">Directions &amp; hours ↗</a></div></div>' +
-          '<span class="dist">' + esc(dist) + "</span></div>";
-      });
-      results.innerHTML = cards.join("");
-      results.querySelectorAll(".rest").forEach(el => {
-        el.addEventListener("click", (ev) => {
-          if (ev.target.closest("[data-stop]")) return;
-          const r = list[parseInt(el.dataset.idx, 10)];
-          map.flyTo([r.Latitude, r.Longitude], 15, { duration: 0.6 });
-          setTimeout(() => r._marker.openPopup(), 650);
-        });
-      });
-      map.fitBounds(L.latLngBounds(bounds).pad(0.15), { maxZoom: 15 });
-      document.getElementById("map").scrollIntoView({ behavior: "smooth", block: "nearest" });
-      status.textContent = list.length + " RMP restaurant" + (list.length === 1 ? "" : "s") + " found near " + zip +
-        (geo ? " (" + geo.city + ")" : "") + " — hover a marker for details.";
-    }
+    const z = await apiGet("https://api.zippopotam.us/us/" + zip);
+    const place = z.places && z.places[0];
+    if (!place) throw new Error("ZIP code not found.");
+    if (place["state abbreviation"] !== "CA") throw new Error("This map covers California only — " + zip + " is in " + place["state abbreviation"] + ".");
+    map.flyTo([parseFloat(place.latitude), parseFloat(place.longitude)], 13, { duration: 0.8 });
+    status.textContent = vendors.length.toLocaleString() + " RMP restaurants statewide — zoomed to " + zip + " (" + place["place name"] + ").";
   } catch (err) {
     status.innerHTML = '<div class="error">' + esc(err.message) + "</div>";
   } finally {
     btn.disabled = false;
   }
-});
+}
+
+document.getElementById("zoomBtn").addEventListener("click", zoomToZip);
+document.getElementById("zip").addEventListener("keydown", (e) => { if (e.key === "Enter") zoomToZip(); });
+
+(async function boot() {
+  const status = document.getElementById("status");
+  try {
+    initMap();
+    await loadAll();
+    buildMarkers();
+    renderInViewList();
+    status.textContent = vendors.length.toLocaleString() + " RMP restaurants across California — drag to explore, hover a marker for details.";
+  } catch (err) {
+    status.innerHTML = '<div class="error">' + esc(err.message) + "</div>";
+  }
+})();
 </script>
 </body>
 </html>
