@@ -22,10 +22,14 @@ menu file, and it calls public data APIs directly from your browser.
 ## 2. Run it (pick one)
 
 **Option A — just open the file (easiest).**
-Open `frontend/index.html` in your browser (double-click it, or
+Open `index.html` in your browser (double-click it, or
 File → Open File). Enter a California ZIP code and hit Search.
 
-**Option B — local server (use this if searches fail to load).**
+**Option B — use the public site.**
+Once GitHub Pages is enabled (see README), just visit
+https://bonapartexiong.github.io/ebt-rmp-finder/ — no download needed.
+
+**Option C — local server (use this if searches fail to load).**
 Some browsers block the app's direct calls to the data APIs when the page is
 opened as a file. The bundled server proxies those calls:
 

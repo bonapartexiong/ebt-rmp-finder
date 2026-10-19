@@ -4,6 +4,9 @@ Enter any California ZIP code → get the hot-meal restaurants near it that acce
 through California's **Restaurant Meals Program (RMP)**, each with its popular orders
 and typical prices.
 
+**Live site:** https://bonapartexiong.github.io/ebt-rmp-finder/ (after enabling
+GitHub Pages — see below).
+
 ## How it works
 
 - **Vendor data (live):** the USDA Food and Nutrition Service's public SNAP retailer
@@ -19,7 +22,7 @@ and typical prices.
 
 ## Run it
 
-Just open `frontend/index.html` in a browser — it calls the public APIs directly.
+Just open `index.html` in a browser — it calls the public APIs directly.
 If the browser blocks the cross-origin calls, run the bundled proxy instead:
 
 ```
@@ -28,6 +31,20 @@ python backend/proxy.py
 ```
 
 The frontend automatically retries failed API calls through `/api/proxy`.
+
+## Publishing (GitHub Pages)
+
+The app is a static site, so it can be published free with GitHub Pages —
+`index.html` already sits at the repo root for this:
+
+1. On GitHub, open the repo → **Settings** → **Pages**.
+2. Under "Build and deployment", set Source to **Deploy from a branch**,
+   Branch to **main**, folder to **/(root)** → Save.
+3. After a minute or two the site is live at
+   https://bonapartexiong.github.io/ebt-rmp-finder/
+
+No backend needed — the page calls the USDA and Zippopotam APIs directly from
+the visitor's browser (both allow cross-origin requests).
 
 ## Notes
 

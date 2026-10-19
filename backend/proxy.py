@@ -15,7 +15,6 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 ROOT = Path(__file__).resolve().parent.parent
-FRONTEND = ROOT / "frontend"
 ALLOWED_HOSTS = {"api.zippopotam.us", "services1.arcgis.com"}
 
 
@@ -47,14 +46,11 @@ class Handler(BaseHTTPRequestHandler):
             except urllib.error.URLError as e:
                 return self._send(502, json.dumps({"error": str(e)}), "application/json")
 
-        # Static files
+        # Static files (repo root: index.html, data/, etc.)
         rel = parsed.path.lstrip("/") or "index.html"
         if ".." in rel:
             return self._send(403, "forbidden")
-        f = FRONTEND / rel
-        data_dir = ROOT / "data"
-        if not f.exists() and (data_dir / rel).exists():
-            f = data_dir / rel
+        f = ROOT / rel
         if not f.is_file():
             return self._send(404, "not found")
         ctype = "text/html; charset=utf-8"
