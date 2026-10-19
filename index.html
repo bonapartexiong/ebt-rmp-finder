@@ -4,14 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CalFresh RMP Restaurant Finder — Hot Meals on EBT in California</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-  :root { --green:#1b6b3a; --green-dark:#14522d; --bg:#f4f6f4; --card:#ffffff; --ink:#1d2420; --muted:#5c665e; --line:#dde3dd; --amber:#8a5a00; --amber-bg:#fff6e0; }
+  :root { --green:#1b6b3a; --green-dark:#14522d; --bg:#f4f6f4; --card:#ffffff; --ink:#1d2420; --muted:#5c665e; --line:#dde3dd; }
   * { box-sizing:border-box; }
   body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; margin:0; background:var(--bg); color:var(--ink); line-height:1.5; }
   header { background:var(--green); color:#fff; padding:1.4rem 1rem 1.1rem; }
   header h1 { margin:0 0 .3rem; font-size:1.35rem; }
   header p { margin:0; opacity:.92; font-size:.95rem; }
-  .wrap { max-width:760px; margin:0 auto; padding:1rem; }
+  .wrap { max-width:860px; margin:0 auto; padding:1rem; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; margin-bottom:.9rem; }
   .elig { background:#eaf4ec; border:1px solid #bcd9c2; border-radius:12px; padding:.85rem 1rem; font-size:.92rem; margin-bottom:1rem; }
   .elig strong { color:var(--green-dark); }
@@ -24,24 +25,19 @@
   button.go:disabled { opacity:.6; cursor:wait; }
   .status { margin:.8rem 0; font-size:.95rem; color:var(--muted); }
   .error { background:#fdecea; border:1px solid #f3b3ad; color:#7a241d; border-radius:10px; padding:.8rem 1rem; margin:.8rem 0; font-size:.95rem; }
-  .rest { position:relative; }
-  .rest h2 { margin:.1rem 3.5rem .2rem 0; font-size:1.08rem; }
-  .dist { position:absolute; top:1rem; right:1.1rem; background:#eef3ee; border:1px solid var(--line); border-radius:20px; padding:.15rem .65rem; font-size:.85rem; font-weight:700; color:var(--green-dark); }
-  .badge { display:inline-block; font-size:.75rem; font-weight:700; background:#e7f0e8; color:var(--green-dark); border-radius:6px; padding:.1rem .45rem; margin-bottom:.3rem; }
-  .badge.indep { background:#eef1f4; color:#4c5866; }
-  .addr { color:var(--muted); font-size:.95rem; margin:.1rem 0 .45rem; }
-  .menu { margin:.6rem 0 0; padding:0; list-style:none; border-top:1px dashed var(--line); }
-  .menu li { display:flex; justify-content:space-between; gap:.75rem; padding:.4rem 0; border-bottom:1px dashed var(--line); font-size:.93rem; }
-  .menu li:last-child { border-bottom:0; }
-  .menu .p { font-weight:700; white-space:nowrap; }
-  .menu-head { font-size:.85rem; font-weight:700; color:var(--green-dark); margin:.7rem 0 .1rem; text-transform:uppercase; letter-spacing:.03em; }
-  .note { font-size:.85rem; color:var(--muted); }
-  .nomenu { background:var(--amber-bg); border:1px solid #ecd9a0; border-radius:8px; padding:.6rem .8rem; font-size:.9rem; color:var(--amber); margin-top:.7rem; }
-  .links { margin-top:.7rem; font-size:.92rem; }
+  #map { height:440px; border-radius:12px; border:1px solid var(--line); margin-bottom:.9rem; display:none; z-index:0; }
+  .rest { display:flex; justify-content:space-between; align-items:center; gap:.75rem; cursor:pointer; }
+  .rest:hover { border-color:var(--green); }
+  .rest h2 { margin:0 0 .15rem; font-size:1.02rem; }
+  .addr { color:var(--muted); font-size:.9rem; }
+  .dist { background:#eef3ee; border:1px solid var(--line); border-radius:20px; padding:.15rem .65rem; font-size:.85rem; font-weight:700; color:var(--green-dark); white-space:nowrap; }
+  .links { margin-top:.4rem; font-size:.88rem; }
   .links a { color:var(--green); font-weight:600; }
-  footer { font-size:.82rem; color:var(--muted); padding:1rem; max-width:760px; margin:0 auto 2rem; }
+  .note { font-size:.85rem; color:var(--muted); }
+  footer { font-size:.82rem; color:var(--muted); padding:1rem; max-width:860px; margin:0 auto 2rem; }
   footer a { color:var(--green); }
   .sources { font-size:.88rem; }
+  .leaflet-tooltip.rmp-tip { font-family:inherit; }
 </style>
 </head>
 <body>
@@ -82,6 +78,7 @@
   </div>
 
   <div class="status" id="status" aria-live="polite"></div>
+  <div id="map" role="application" aria-label="Map of RMP restaurants"></div>
   <div id="results"></div>
 
   <div class="card sources">
@@ -89,29 +86,22 @@
     <a href="https://www.cdss.ca.gov/rmp" target="_blank" rel="noopener">CDSS CalFresh Restaurant Meals Program</a> ·
     <a href="https://www.cdss.ca.gov/Portals/9/CalFresh/RMP/restaurant-list.xlsx" target="_blank" rel="noopener">CDSS statewide restaurant list (spreadsheet)</a> ·
     <a href="https://www.ebt.ca.gov/locator/index.html#/locator.page" target="_blank" rel="noopener">California EBT locator map</a><br>
-    <span class="note">Vendor data: USDA Food and Nutrition Service SNAP retailer database, queried live. Chain menus/prices: typical California menu prices, compiled Oct 2026 — verify in store.</span>
+    <span class="note">Vendor data: USDA Food and Nutrition Service SNAP retailer database, queried live. Business hours are not published in the public vendor dataset — tap a marker and follow the directions link to check hours.</span>
   </div>
 </div>
 
 <footer>
   Built for California. RMP eligibility: all household members must be 60+, disabled, or homeless (spouses excepted from the criteria).
-  Prices are typical advertised prices at CA chain locations and vary by location. Independent restaurants have no published menu here — check in store.
-  If a location stops accepting EBT, look for the official RMP decal in the window or confirm with the county office.
+  Participation is per restaurant location, not per chain. If a location stops accepting EBT, look for the official RMP decal in the window or confirm with the county office.
+  Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
 </footer>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 "use strict";
 const ARCGIS = "https://services1.arcgis.com/RLQu0rK7h4kbsBq5/arcgis/rest/services/snap_retailer_location_data/FeatureServer/0/query";
 const FIELDS = ["Store_Name","Store_Street_Address","Additonal_Address","City","State","Zip_Code","County","Store_Type","Latitude","Longitude"].join(",");
-let MENUS = null;
-
-async function loadMenus() {
-  if (MENUS) return MENUS;
-  const r = await fetch("data/chain_menus.json");
-  if (!r.ok) throw new Error("menu data failed to load");
-  MENUS = await r.json();
-  return MENUS;
-}
+let map = null, markersLayer = null;
 
 // Try a direct fetch; on network/CORS failure, retry through the bundled local proxy (only when served by backend/proxy.py on localhost).
 const LOCAL_PROXY = location.hostname === "localhost" || location.hostname === "127.0.0.1";
@@ -128,17 +118,6 @@ async function apiGet(url) {
     }
     throw new Error("Could not reach the data service. Check your internet connection and try again.");
   }
-}
-
-function matchChain(name, menus) {
-  const n = name.toLowerCase().replace(/'/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ");
-  for (const key of Object.keys(menus)) {
-    if (key[0] === "_") continue;
-    for (const kw of menus[key].keywords) {
-      if (n.includes(kw.toLowerCase().replace(/'/g, ""))) return key;
-    }
-  }
-  return null;
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
@@ -185,32 +164,22 @@ async function queryRmpByZip(zip) {
 
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
-function renderCard(r, menus) {
-  const name = r.Store_Name || "Unnamed location";
-  const addr = [r.Store_Street_Address, r.Additonal_Address].filter(Boolean).join(", ");
-  const cityZip = [r.City, r.State, r.Zip_Code].filter(Boolean).join(" ");
-  const chainKey = matchChain(name, menus);
-  const dist = (r._dist != null) ? r._dist.toFixed(1) + " mi" : "";
-  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(name + " " + addr + " " + cityZip);
-  let menuHtml;
-  if (chainKey) {
-    const m = menus[chainKey];
-    menuHtml = '<div class="menu-head">Popular orders · ' + esc(m.display) + ' (typical prices)</div><ul class="menu">' +
-      m.items.map(i => "<li><span>" + esc(i.item) + "</span><span class=\"p\">" + esc(i.price) + "</span></li>").join("") +
-      "</ul><div class=\"note\">Typical California menu prices — vary by location, verify in store.</div>";
-  } else {
-    menuHtml = '<div class="nomenu">Independent restaurant — no published menu on file. Popular orders and prices vary; check in store or call ahead.</div>';
+function mapsUrl(r) {
+  const q = [r.Store_Name, r.Store_Street_Address, r.City, "CA", r.Zip_Code].filter(Boolean).join(" ");
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+}
+
+function ensureMap(lat, lng) {
+  const el = document.getElementById("map");
+  if (!map) {
+    map = L.map("map").setView([lat, lng], 13);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
   }
-  return '<div class="card rest">' +
-    '<span class="dist">' + esc(dist) + "</span>" +
-    "<h2>" + esc(name) + "</h2>" +
-    (chainKey
-      ? '<span class="badge">' + esc(menus[chainKey].display) + '</span>'
-      : '<span class="badge indep">Independent</span>') +
-    '<div class="addr">' + esc(addr) + "<br>" + esc(cityZip) + (r.County ? " · " + esc(r.County) + " County" : "") + "</div>" +
-    menuHtml +
-    '<div class="links"><a href="' + mapsUrl + '" target="_blank" rel="noopener">Directions &amp; hours ↗</a></div>' +
-    "</div>";
+  if (el.style.display === "none") { el.style.display = "block"; map.invalidateSize(); }
 }
 
 document.getElementById("searchForm").addEventListener("submit", async (e) => {
@@ -224,7 +193,6 @@ document.getElementById("searchForm").addEventListener("submit", async (e) => {
   if (!/^\d{5}$/.test(zip)) { status.innerHTML = '<div class="error">Enter a 5-digit ZIP code.</div>'; return; }
   btn.disabled = true;
   try {
-    const menus = await loadMenus();
     let geo = null, list;
     try {
       geo = await geocodeZip(zip);
@@ -235,7 +203,6 @@ document.getElementById("searchForm").addEventListener("submit", async (e) => {
       list.sort((a, b) => (a._dist || 0) - (b._dist || 0));
     } catch (gErr) {
       if (/California only|not found/i.test(gErr.message)) throw gErr;
-      // geocoder down: fall back to exact-ZIP match
       status.textContent = "ZIP lookup hiccup — matching restaurants in " + zip + " exactly…";
       list = await queryRmpByZip(zip);
       if (list.length === 0) throw gErr;
@@ -244,9 +211,43 @@ document.getElementById("searchForm").addEventListener("submit", async (e) => {
       status.innerHTML = '<div class="error">No RMP restaurants found within ' + miles + ' miles of ' + esc(zip) +
         '. Try a larger radius, or check the <a href="https://www.ebt.ca.gov/locator/index.html#/locator.page" target="_blank" rel="noopener">official EBT map</a>.</div>';
     } else {
+      const cx = geo ? geo.lat : list[0].Latitude, cy = geo ? geo.lng : list[0].Longitude;
+      ensureMap(cx, cy);
+      markersLayer.clearLayers();
+      const bounds = [];
+      const cards = list.map((r, i) => {
+        const name = r.Store_Name || "Unnamed location";
+        const addr = [r.Store_Street_Address, r.Additonal_Address].filter(Boolean).join(", ");
+        const cityZip = [r.City, r.State, r.Zip_Code].filter(Boolean).join(" ");
+        const dist = (r._dist != null) ? r._dist.toFixed(1) + " mi" : "";
+        const m = L.marker([r.Latitude, r.Longitude]);
+        m.bindTooltip("<b>" + esc(name) + "</b><br>" + esc(addr) + (dist ? "<br>" + esc(dist) : ""),
+                     { direction: "top", offset: [0, -10], className: "rmp-tip" });
+        m.bindPopup("<b>" + esc(name) + "</b><br>" + esc(addr) + "<br>" + esc(cityZip) +
+          (dist ? "<br>" + esc(dist) + " away" : "") +
+          '<br><span class="note">Hours not in the public dataset —</span> ' +
+          '<a href="' + mapsUrl(r) + '" target="_blank" rel="noopener">check hours &amp; directions ↗</a>');
+        markersLayer.addLayer(m);
+        bounds.push([r.Latitude, r.Longitude]);
+        r._marker = m;
+        return '<div class="card rest" data-idx="' + i + '">' +
+          '<div><h2>' + esc(name) + '</h2><div class="addr">' + esc(addr) + "<br>" + esc(cityZip) + "</div>" +
+          '<div class="links"><a href="' + mapsUrl(r) + '" target="_blank" rel="noopener" data-stop="1">Directions &amp; hours ↗</a></div></div>' +
+          '<span class="dist">' + esc(dist) + "</span></div>";
+      });
+      results.innerHTML = cards.join("");
+      results.querySelectorAll(".rest").forEach(el => {
+        el.addEventListener("click", (ev) => {
+          if (ev.target.closest("[data-stop]")) return;
+          const r = list[parseInt(el.dataset.idx, 10)];
+          map.flyTo([r.Latitude, r.Longitude], 15, { duration: 0.6 });
+          setTimeout(() => r._marker.openPopup(), 650);
+        });
+      });
+      map.fitBounds(L.latLngBounds(bounds).pad(0.15), { maxZoom: 15 });
+      document.getElementById("map").scrollIntoView({ behavior: "smooth", block: "nearest" });
       status.textContent = list.length + " RMP restaurant" + (list.length === 1 ? "" : "s") + " found near " + zip +
-        (geo ? " (" + geo.city + ")" : "") + " — sorted by distance.";
-      results.innerHTML = list.map(r => renderCard(r, menus)).join("");
+        (geo ? " (" + geo.city + ")" : "") + " — hover a marker for details.";
     }
   } catch (err) {
     status.innerHTML = '<div class="error">' + esc(err.message) + "</div>";

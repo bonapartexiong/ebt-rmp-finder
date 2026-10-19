@@ -1,8 +1,6 @@
 # CalFresh RMP Restaurant Finder
 
 Enter any California ZIP code → get the hot-meal restaurants near it that accept EBT
-through California's **Restaurant Meals Program (RMP)**, each with its popular orders
-and typical prices.
 
 **Live site:** https://bonapartexiong.github.io/ebt-rmp-finder/ (after enabling
 GitHub Pages — see below).
@@ -15,10 +13,7 @@ GitHub Pages — see below).
   searched in a radius around the ZIP via ArcGIS geometry query. No key, no sign-in.
 - **ZIP → coordinates:** api.zippopotam.us (free, keyless). Falls back to an exact
   ZIP match against the USDA data if the geocoder is unreachable.
-- **Menus & prices:** `data/chain_menus.json` — popular orders and *typical* California
-  menu prices (compiled Oct 2026) for the chains that dominate the RMP vendor list
-  (Subway, McDonald's, El Pollo Loco, Del Taco, Yoshinoya, WaBa Grill, … — 21 chains).
-  Independent restaurants get a "check in store" note instead of made-up data.
+- **Map:** Leaflet + OpenStreetMap tiles (no API key). Markers show name/address/distance on hover; tap for details and a directions link. Business hours are not published in the public vendor dataset.
 
 ## Run it
 
@@ -53,5 +48,3 @@ the visitor's browser (both allow cross-origin requests).
 - Vendor participation is per-location, not per-chain — a nearby McDonald's may
   participate while another doesn't. The USDA data is the authority; the state also
   publishes a [statewide spreadsheet](https://www.cdss.ca.gov/Portals/9/CalFresh/RMP/restaurant-list.xlsx).
-- Prices are typical advertised prices at CA locations and change over time —
-  always verify in store.

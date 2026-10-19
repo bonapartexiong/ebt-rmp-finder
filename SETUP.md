@@ -16,8 +16,8 @@ git clone https://github.com/bonapartexiong/ebt-rmp-finder.git
 cd ebt-rmp-finder
 ```
 
-No dependencies to install — the app is a single HTML page plus a small JSON
-menu file, and it calls public data APIs directly from your browser.
+No dependencies to install — the app is a single HTML page, and it calls public
+data APIs directly from your browser (map tiles via Leaflet CDN).
 
 ## 2. Run it (pick one)
 
@@ -44,8 +44,9 @@ Ctrl+C when you're done.
 
 1. Type a California ZIP code, e.g. `91006` (Arcadia).
 2. Pick a radius (default 5 miles) and click **Search**.
-3. Each result shows the restaurant name, address, distance, a directions link,
-   and its popular orders with typical prices.
+3. The map zooms to your ZIP with a marker per restaurant — hover a marker for its
+   name and address, click for details and a directions/hours link. The list below
+   mirrors the markers; clicking a row flies the map to it.
 
 ## Troubleshooting
 
@@ -55,7 +56,6 @@ Ctrl+C when you're done.
 | "covers California only" | This finder uses California's Restaurant Meals Program data. |
 | Search spins then errors (Option A) | Your browser blocked the API calls — use Option B. |
 | No restaurants found | Try a larger radius. Rural areas may genuinely have none nearby. |
-| Prices look off | Prices are *typical* California menu prices compiled Oct 2026 — they vary by location. Verify in store. |
 
 ## Notes
 
